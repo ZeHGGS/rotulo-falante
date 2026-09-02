@@ -36,6 +36,7 @@
     padding:0 0 3rem;
   }
   .wrap{max-width:44rem; margin:0 auto; padding:1rem}
+  html,body{max-width:100%; overflow-x:hidden}
   h1{font-size:calc(1.6rem * var(--escala)); margin:.2rem 0 .1rem; line-height:1.2}
   h2{font-size:calc(1.15rem * var(--escala)); margin:1.5rem 0 .5rem}
   .sub{color:var(--fg-fraco); margin:0 0 1rem; font-size:calc(.95rem * var(--escala))}
@@ -71,12 +72,14 @@
   .campo .btn{flex:0 1 10rem; min-height:3.5rem}
   label{display:block; font-weight:700; margin-bottom:.35rem}
 
-  .visor{position:relative; margin:.5rem 0}
+  .visor{position:relative; margin:.5rem 0; overflow:hidden; border-radius:.75rem}
   #video{width:100%; max-height:60vh; border-radius:.75rem; border:3px solid var(--linha); background:#000; display:block}
+  /* Sem box-shadow gigante: no Safari do iOS ele estourava a area rolavel
+     e o navegador diminuia o zoom da pagina inteira. */
   .mira{
     position:absolute; left:5%; right:5%; top:30%; height:40%;
-    border:3px solid rgba(255,255,255,.9); border-radius:.4rem; pointer-events:none;
-    box-shadow:0 0 0 100vmax rgba(0,0,0,.3);
+    border:3px solid rgba(255,255,255,.95); border-radius:.4rem; pointer-events:none;
+    outline:2px solid rgba(0,0,0,.45); outline-offset:-2px;
   }
   .oculto{display:none !important}
 
@@ -343,9 +346,12 @@ function desenharEan13(lona, codigo){
 let motorTipo = null;          // "nativo" | "zxing" | "nenhum"
 let detectorNativo = null;
 let leitorZxing = null;
+let dicasZxing = null;
+
+const NOME_MOTOR = { nativo:"BarcodeDetector nativo", zxing:"ZXing (núcleo)", nenhum:"nenhum (biblioteca não carregou)" };
 
 async function prepararMotor(){
-  if(motorTipo) return motorTipo;
+  if(motorTipo){ tel.motor = NOME_MOTOR[motorTipo]; return motorTipo; }
 
   if("BarcodeDetector" in window){
     try{
@@ -370,10 +376,12 @@ async function prepararMotor(){
       ZXing.BarcodeFormat.CODE_128
     ]);
     dicas.set(ZXing.DecodeHintType.TRY_HARDER, true);
-    // BrowserMultiFormatReader cuida da conversão de luminância internamente.
-    leitorZxing = new ZXing.BrowserMultiFormatReader(dicas);
+    // Núcleo do ZXing, não o wrapper de navegador: BrowserMultiFormatReader
+    // não expõe leitura de canvas nesta versão.
+    leitorZxing = new ZXing.MultiFormatReader();
+    dicasZxing = dicas;
     motorTipo = "zxing";
-    tel.motor = "ZXing " + (ZXing.VERSION || "");
+    tel.motor = "ZXing (núcleo)";
     return motorTipo;
   }
 
@@ -391,7 +399,9 @@ async function lerDoCanvas(lona){
     }
     if(motorTipo === "zxing"){
       try{
-        const r = leitorZxing.decodeFromCanvas(lona);
+        const fonte  = new ZXing.HTMLCanvasElementLuminanceSource(lona);
+        const bitmap = new ZXing.BinaryBitmap(new ZXing.HybridBinarizer(fonte));
+        const r = leitorZxing.decode(bitmap, dicasZxing);
         return r ? r.getText() : null;
       }catch(err){
         // NotFoundException é o caso normal: nada no quadro. Só o resto é erro.
@@ -401,6 +411,8 @@ async function lerDoCanvas(lona){
           tel.erro = nome + (err.message ? ": " + err.message : "");
         }
         return null;
+      }finally{
+        if(leitorZxing.reset) leitorZxing.reset();
       }
     }
   }catch(e){
