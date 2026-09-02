@@ -68,15 +68,29 @@
 
   .campo{display:flex; gap:.5rem; flex-wrap:wrap}
   .campo input{
-    flex:1 1 12rem; min-height:4rem; padding:.75rem 1rem;
+    flex:1 1 12rem; min-height:3.5rem; padding:.75rem 1rem;
     border:3px solid var(--linha); border-radius:.75rem;
     background:var(--bg); color:var(--fg); letter-spacing:.06em;
   }
-  .campo .btn{flex:0 1 12rem}
+  .campo .btn{flex:0 1 10rem; min-height:3.5rem}
   label{display:block; font-weight:700; margin-bottom:.35rem}
 
+  /* ---------- Área da câmera ---------- */
+  .visor{position:relative; margin:.5rem 0}
   #video{width:100%; max-height:60vh; border-radius:.75rem; border:3px solid var(--linha); background:#000; display:block}
+  /* Faixa que marca onde o código precisa passar. Serve ao vidente e à demonstração. */
+  .mira{
+    position:absolute; left:8%; right:8%; top:37.5%; height:25%;
+    border:3px solid rgba(255,255,255,.85); border-radius:.4rem; pointer-events:none;
+    box-shadow:0 0 0 100vmax rgba(0,0,0,.35);
+  }
   .oculto{display:none !important}
+
+  /* ---------- Guia sonoro: medidor visível do sinal ---------- */
+  .sonar{margin:.5rem 0 0}
+  .sonar-trilho{height:1.1rem; border:2px solid var(--linha); border-radius:.6rem; overflow:hidden; background:var(--card)}
+  .sonar-nivel{height:100%; width:0%; background:var(--acao); transition:width .12s linear}
+  html[data-contraste="alto"] .sonar-nivel{background:var(--fg)}
 
   .cartao{border:3px solid var(--linha); border-radius:.9rem; padding:1rem 1.15rem; margin:1rem 0; background:var(--card)}
   .cartao h3{margin:.1rem 0 .3rem; font-size:calc(1.35rem * var(--escala)); line-height:1.25}
@@ -99,6 +113,16 @@
   }
   ul.hist small{display:block; font-weight:400; color:var(--fg-fraco)}
 
+  /* ---------- Bancada da equipe ---------- */
+  details.bancada{margin-top:2rem; border:2px dashed var(--linha); border-radius:.75rem; padding:.75rem 1rem}
+  details.bancada summary{cursor:pointer; font-weight:700; padding:.5rem 0; min-height:2.75rem}
+  details.bancada .sub{margin-top:.25rem}
+  pre.diag{
+    margin:.5rem 0 0; padding:.75rem; overflow-x:auto;
+    background:var(--card); border:2px solid var(--linha); border-radius:.5rem;
+    font:600 calc(.85rem * var(--escala))/1.5 ui-monospace,Consolas,monospace; color:var(--fg);
+  }
+
   footer{margin-top:2.5rem; padding-top:1rem; border-top:2px solid var(--linha);
          color:var(--fg-fraco); font-size:calc(.9rem * var(--escala))}
   /* Conteúdo só para leitor de tela */
@@ -111,7 +135,7 @@
 
   <header>
     <h1>Rótulo Falante</h1>
-    <p class="sub">Aponte a câmera para o código de barras. O aplicativo fala o que é o produto.</p>
+    <p class="sub">Segure o celular parado e gire o produto na frente dele. O bipe acelera quando o código entra no quadro.</p>
   </header>
 
   <!-- Controles de acessibilidade: o próprio app precisa ser acessível (exigência do slide 15) -->
@@ -120,35 +144,25 @@
     <button type="button" id="btnMaior" aria-label="Aumentar tamanho do texto">A+</button>
     <button type="button" id="btnContraste" aria-pressed="false">Alto contraste</button>
     <button type="button" id="btnVoz" aria-pressed="true">Voz ligada</button>
+    <button type="button" id="btnSonar" aria-pressed="true">Bipe ligado</button>
     <button type="button" id="btnRepetir">Repetir</button>
   </div>
 
-  <h2>Ler um produto</h2>
-  <button type="button" class="btn" id="btnCamera" aria-describedby="ajudaCamera">
-    Escanear com a c&acirc;mera
-  </button>
-  <p class="sub" id="ajudaCamera">Se a câmera não abrir, digite os números do código de barras abaixo.</p>
+  <button type="button" class="btn" id="btnCamera">Escanear produto</button>
 
-  <video id="video" class="oculto" playsinline muted aria-label="Imagem da câmera procurando um código de barras"></video>
-  <button type="button" class="btn secundario oculto" id="btnParar">Parar c&acirc;mera</button>
+  <div class="visor oculto" id="visor">
+    <video id="video" playsinline muted autoplay aria-label="Câmera procurando um código de barras"></video>
+    <div class="mira" aria-hidden="true"></div>
+  </div>
 
-  <form id="formManual" novalidate>
-    <label for="codigo">Ou digite o código de barras</label>
-    <div class="campo">
-      <input id="codigo" name="codigo" type="text" inputmode="numeric" autocomplete="off"
-             placeholder="7891000100103" aria-describedby="ajudaCodigo">
-      <button class="btn" type="submit">Buscar</button>
-    </div>
-    <p class="sub" id="ajudaCodigo">São os números que ficam embaixo das barras, geralmente 13 dígitos.</p>
-  </form>
+  <div class="sonar oculto" id="sonar">
+    <div class="sonar-trilho"><div class="sonar-nivel" id="sonarNivel"></div></div>
+    <p class="sub" id="sonarTexto" style="margin:.35rem 0 0">Procurando…</p>
+  </div>
 
-  <h2>Exemplos para testar agora</h2>
-  <div class="barra" role="group" aria-label="Códigos de exemplo">
-    <button type="button" class="exemplo" data-codigo="7891000100103">Leite condensado</button>
-    <button type="button" class="exemplo" data-codigo="7891910000197">Açúcar</button>
-    <button type="button" class="exemplo" data-codigo="7896714200019">Dipirona 500mg</button>
-    <button type="button" class="exemplo" data-codigo="7896006201014">Paracetamol 750mg</button>
-    <button type="button" class="exemplo" data-codigo="7896112110019">Amoxicilina 500mg</button>
+  <div class="barra oculto" id="barraCamera">
+    <button type="button" id="btnLanterna" class="oculto" aria-pressed="false">Lanterna</button>
+    <button type="button" id="btnParar">Parar câmera</button>
   </div>
 
   <!-- Região viva: o leitor de tela anuncia sozinho quando o resultado chega -->
@@ -158,11 +172,42 @@
   <h2>Últimos produtos lidos</h2>
   <ul class="hist" id="historico"><li><span class="sub">Nada lido ainda.</span></li></ul>
 
+  <!-- ===========================================================
+       Bancada da equipe.
+       Digitar código de barras NÃO faz parte do fluxo do usuário:
+       quem é cego não lê os números impressos embaixo das barras.
+       Fica aqui só para testar e para cadastrar a base.
+       =========================================================== -->
+  <details class="bancada">
+    <summary>Bancada de teste da equipe</summary>
+    <p class="sub">Não faz parte do fluxo do usuário. Digitar o código exige enxergar os
+    números impressos na embalagem — serve para testar e para alimentar a base.</p>
+
+    <form id="formManual" novalidate>
+      <label for="codigo">Código de barras</label>
+      <div class="campo">
+        <input id="codigo" name="codigo" type="text" inputmode="numeric" autocomplete="off"
+               placeholder="7891000100103">
+        <button class="btn" type="submit">Buscar</button>
+      </div>
+    </form>
+
+    <div class="barra" role="group" aria-label="Códigos de exemplo">
+      <button type="button" class="exemplo" data-codigo="7891000100103">Leite condensado</button>
+      <button type="button" class="exemplo" data-codigo="7891910000197">Açúcar</button>
+      <button type="button" class="exemplo" data-codigo="7896714200019">Dipirona</button>
+      <button type="button" class="exemplo" data-codigo="7896006201014">Paracetamol</button>
+      <button type="button" class="exemplo" data-codigo="7896112110019">Amoxicilina</button>
+    </div>
+
+    <pre class="diag" id="diag" aria-live="off">Câmera desligada.</pre>
+  </details>
+
   <footer>
     <p><strong>Protótipo acadêmico.</strong> Os dados de medicamentos aqui são de demonstração,
     cadastrados manualmente pela equipe (abordagem <em>MVP Concierge</em>). Não substituem a bula
     nem orientação de médico ou farmacêutico.</p>
-    <p>Alimentos: consulta ao Open Food Facts (base pública e colaborativa). Voz: sintetizador do próprio navegador.</p>
+    <p>Alimentos: consulta ao Open Food Facts. Voz: sintetizador do próprio navegador.</p>
   </footer>
 </div>
 
@@ -171,52 +216,41 @@
 
 /* =========================================================================
    1. BASE CURADA (MVP Concierge)
-   Tudo que a equipe cadastra na mão. É aqui que entram os medicamentos,
-   porque a ANVISA não oferece API pública aberta para consulta direta.
-   Para a banca: acrescente aqui os produtos que vocês vão escanear ao vivo.
+   Cadastre aqui os produtos que vocês vão escanear na banca.
+   Nunca dependa da internet da faculdade na hora da apresentação.
    ========================================================================= */
 const CATALOGO_LOCAL = {
   "7896714200019": {
-    tipo: "medicamento",
-    nome: "Dipirona Sódica 500 mg",
-    marca: "Genérico — comprimido",
-    quantidade: "10 comprimidos",
+    tipo: "medicamento", nome: "Dipirona Sódica 500 mg",
+    marca: "Genérico — comprimido", quantidade: "10 comprimidos",
     indicacao: "Dor e febre.",
     posologia: "Adulto: 1 comprimido a cada 6 horas. Não passe de 4 comprimidos por dia.",
     contraindicacao: "Não use se você tem alergia a dipirona, problema grave de rim ou fígado, ou se estiver grávida no último trimestre.",
     alertas: ["Não tome junto com bebida alcoólica."]
   },
   "7896006201014": {
-    tipo: "medicamento",
-    nome: "Paracetamol 750 mg",
-    marca: "Genérico — comprimido",
-    quantidade: "20 comprimidos",
+    tipo: "medicamento", nome: "Paracetamol 750 mg",
+    marca: "Genérico — comprimido", quantidade: "20 comprimidos",
     indicacao: "Dor e febre.",
     posologia: "Adulto: 1 comprimido a cada 6 horas. Máximo de 5 comprimidos por dia.",
     contraindicacao: "Não use se você tem doença no fígado. Cuidado: muitos remédios de gripe já têm paracetamol, não tome os dois juntos.",
     alertas: ["Risco de dano ao fígado se passar da dose."]
   },
   "7896112110019": {
-    tipo: "medicamento",
-    nome: "Amoxicilina 500 mg",
-    marca: "Genérico — cápsula",
-    quantidade: "21 cápsulas",
+    tipo: "medicamento", nome: "Amoxicilina 500 mg",
+    marca: "Genérico — cápsula", quantidade: "21 cápsulas",
     indicacao: "Antibiótico para infecção bacteriana.",
     posologia: "Conforme receita médica. Normalmente 1 cápsula a cada 8 horas.",
     contraindicacao: "Não use se você tem alergia a penicilina.",
     alertas: ["Antibiótico só com receita.", "Termine o tratamento inteiro, mesmo se melhorar antes."]
   },
   "7891910000197": {
-    tipo: "alimento",
-    nome: "Açúcar Refinado",
-    marca: "Base local de demonstração",
-    quantidade: "1 kg",
-    ingredientes: "Açúcar refinado.",
-    alergenos: []
+    tipo: "alimento", nome: "Açúcar Refinado",
+    marca: "Base local de demonstração", quantidade: "1 kg",
+    ingredientes: "Açúcar refinado.", alergenos: []
   }
 };
 
-/* Tradução das etiquetas de alérgeno do Open Food Facts */
 const ALERGENOS_PT = {
   "en:gluten":"glúten", "en:milk":"leite", "en:eggs":"ovos", "en:nuts":"castanhas",
   "en:peanuts":"amendoim", "en:soybeans":"soja", "en:fish":"peixe", "en:crustaceans":"crustáceos",
@@ -225,41 +259,117 @@ const ALERGENOS_PT = {
 };
 
 /* =========================================================================
-   2. Estado e elementos
+   2. Estado
    ========================================================================= */
 const $ = (s) => document.querySelector(s);
-const elResultado = $("#resultado");
-const elUrgente   = $("#urgente");
-const elVideo     = $("#video");
-const elHistorico = $("#historico");
+const elResultado = $("#resultado"), elUrgente = $("#urgente");
+const elVideo = $("#video"), elHistorico = $("#historico");
+const elDiag = $("#diag"), elSonarNivel = $("#sonarNivel"), elSonarTexto = $("#sonarTexto");
 
-let vozLigada = true;
-let escala = 1;
-let ultimoTexto = "";
-let historico = [];
-let pararCamera = null;   // função de limpeza, definida ao ligar a câmera
+let vozLigada = true, sonarLigado = true, escala = 1;
+let ultimoTexto = "", historico = [];
+let camera = null;               // { stream, track, parar() }
+let diag = { motor:"—", resolucao:"—", quadros:0, nivel:0, erro:"" };
 
 /* =========================================================================
-   3. Voz (Web Speech API — nativa do navegador, sem custo)
+   3. Voz
    ========================================================================= */
 function falar(texto){
   ultimoTexto = texto;
   if(!vozLigada || !("speechSynthesis" in window)) return;
   speechSynthesis.cancel();
   const fala = new SpeechSynthesisUtterance(texto);
-  fala.lang = "pt-BR";
-  fala.rate = 0.95;   // um pouco mais devagar: público idoso e com baixa visão
+  fala.lang = "pt-BR"; fala.rate = 0.95;
   speechSynthesis.speak(fala);
 }
 
 /* =========================================================================
-   4. Busca: primeiro a base curada, depois o Open Food Facts
+   4. GUIA SONORO
+   Não dá para pedir a alguém que não enxerga "aponte para o código".
+   Então medimos, quadro a quadro, quanta coisa parecida com código de barras
+   existe no centro da imagem, e transformamos isso em bipe: lento quando não
+   há nada, acelerando conforme as barras entram no quadro. É o mesmo princípio
+   do sensor de ré. A pessoa se orienta pelo som, não pela imagem.
    ========================================================================= */
+let audio = null;
+const lona = document.createElement("canvas");
+lona.width = 192; lona.height = 48;
+const pincel = lona.getContext("2d", { willReadFrequently: true });
+
+function bip(nivel){
+  if(!sonarLigado || !audio) return;
+  const osc = audio.createOscillator(), vol = audio.createGain();
+  osc.type = "sine";
+  osc.frequency.value = 440 + nivel * 500;      // agudo = perto
+  const t = audio.currentTime;
+  vol.gain.setValueAtTime(0.0001, t);
+  vol.gain.exponentialRampToValueAtTime(0.12, t + 0.008);
+  vol.gain.exponentialRampToValueAtTime(0.0001, t + 0.07);
+  osc.connect(vol); vol.connect(audio.destination);
+  osc.start(t); osc.stop(t + 0.09);
+}
+
+/* Conta transições claro/escuro no centro da imagem.
+   Um EAN-13 legível produz dezenas; parede lisa produz quase nenhuma. */
+function medirBarras(){
+  const vw = elVideo.videoWidth, vh = elVideo.videoHeight;
+  if(!vw || !vh) return 0;
+  const rw = vw * 0.84, rh = vh * 0.25;
+  pincel.drawImage(elVideo, (vw - rw) / 2, (vh - rh) / 2, rw, rh, 0, 0, lona.width, lona.height);
+  const px = pincel.getImageData(0, 0, lona.width, lona.height).data;
+
+  let melhor = 0;
+  for(let y = 0; y < lona.height; y += 4){
+    let soma = 0;
+    const cinza = new Array(lona.width);
+    for(let x = 0; x < lona.width; x++){
+      const i = (y * lona.width + x) * 4;
+      const g = px[i] * 0.299 + px[i+1] * 0.587 + px[i+2] * 0.114;
+      cinza[x] = g; soma += g;
+    }
+    const media = soma / lona.width;
+    let transicoes = 0, anterior = null;
+    for(let x = 0; x < lona.width; x++){
+      const escuro = cinza[x] < media - 10;     // margem contra ruído
+      if(anterior !== null && escuro !== anterior) transicoes++;
+      anterior = escuro;
+    }
+    if(transicoes > melhor) melhor = transicoes;
+  }
+  return Math.min(1, melhor / 34);              // 34 transições ≈ código cheio
+}
+
+let proximoBip = 0;
+function pulsoSonar(){
+  const nivel = medirBarras();
+  diag.nivel = nivel;
+  elSonarNivel.style.width = Math.round(nivel * 100) + "%";
+  elSonarTexto.textContent =
+    nivel > 0.75 ? "Quase lá, segure firme" :
+    nivel > 0.40 ? "Está perto" :
+    nivel > 0.15 ? "Alguma coisa no quadro" : "Procurando…";
+
+  const agora = performance.now();
+  if(agora >= proximoBip){
+    bip(nivel);
+    proximoBip = agora + (900 - nivel * 760);   // 900 ms → 140 ms
+  }
+}
+
+/* =========================================================================
+   5. Busca do produto
+   ========================================================================= */
+function digitoEanValido(codigo){
+  if(!/^\d{8}$|^\d{12,13}$/.test(codigo)) return true;   // não valida o que não conhece
+  const d = codigo.split("").map(Number), v = d.pop();
+  const soma = d.reverse().reduce((acc, n, i) => acc + n * (i % 2 === 0 ? 3 : 1), 0);
+  return (10 - (soma % 10)) % 10 === v;
+}
+
 async function buscarProduto(codigo){
   if(CATALOGO_LOCAL[codigo]){
     return Object.assign({ codigo: codigo, fonte: "Base curada pela equipe" }, CATALOGO_LOCAL[codigo]);
   }
-
   const campos = "product_name,product_name_pt,brands,quantity,ingredients_text_pt,ingredients_text,allergens_tags,traces_tags";
   const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(codigo) + ".json?fields=" + campos;
   const resposta = await fetch(url);
@@ -269,41 +379,37 @@ async function buscarProduto(codigo){
   if(!p || (!p.product_name && !p.product_name_pt)) return null;
 
   const tags = [].concat(p.allergens_tags || [], p.traces_tags || []);
-  const alergenos = Array.from(new Set(tags.map(function(t){ return ALERGENOS_PT[t]; }).filter(Boolean)));
-
+  const alergenos = Array.from(new Set(tags.map((t) => ALERGENOS_PT[t]).filter(Boolean)));
   return {
     codigo: codigo, tipo: "alimento", fonte: "Open Food Facts",
     nome: p.product_name_pt || p.product_name,
-    marca: p.brands || "",
-    quantidade: p.quantity || "",
+    marca: p.brands || "", quantidade: p.quantity || "",
     ingredientes: p.ingredients_text_pt || p.ingredients_text || "",
     alergenos: alergenos
   };
 }
 
 /* =========================================================================
-   5. Montagem da tela e do texto falado
+   6. Tela
    ========================================================================= */
 function escapar(s){
   const mapa = {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"};
-  return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return mapa[c]; });
+  return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => mapa[c]);
 }
 
 function mostrarEstado(mensagem, falarTambem){
-  elResultado.innerHTML = '<div class="cartao"><p style="margin:0">' + escapar(mensagem) + '</p></div>';
+  elResultado.innerHTML = '<div class="cartao"><p style="margin:0">' + escapar(mensagem) + "</p></div>";
   if(falarTambem) falar(mensagem);
 }
 
 function mostrarProduto(p){
   const partes = [];
-  let html = '<div class="cartao">';
-  html += "<h3>" + escapar(p.nome) + "</h3>";
+  let html = '<div class="cartao"><h3>' + escapar(p.nome) + "</h3>";
   partes.push(p.nome);
-
   if(p.marca){ html += '<p class="marca">' + escapar(p.marca) + "</p>"; partes.push(p.marca); }
   if(p.quantidade){
-    partes.push(p.quantidade);
     html += '<p class="linha-dado"><span class="rotulo">Quantidade</span>' + escapar(p.quantidade) + "</p>";
+    partes.push(p.quantidade);
   }
 
   if(p.tipo === "medicamento"){
@@ -312,10 +418,7 @@ function mostrarProduto(p){
     partes.push("Para que serve: " + p.indicacao, "Como tomar: " + p.posologia);
     html += '<div class="alerta"><span class="rotulo">Quando NÃO tomar</span>' + escapar(p.contraindicacao) + "</div>";
     partes.push("Atenção. Quando não tomar: " + p.contraindicacao);
-    (p.alertas || []).forEach(function(a){
-      html += '<div class="alerta">' + escapar(a) + "</div>";
-      partes.push(a);
-    });
+    (p.alertas || []).forEach((a) => { html += '<div class="alerta">' + escapar(a) + "</div>"; partes.push(a); });
     elUrgente.textContent = "Medicamento. Leia as contraindicações.";
   } else {
     if(p.alergenos && p.alergenos.length){
@@ -340,91 +443,178 @@ function mostrarProduto(p){
 }
 
 function registrarHistorico(p){
-  historico = [{codigo: p.codigo, nome: p.nome}]
-    .concat(historico.filter(function(h){ return h.codigo !== p.codigo; }))
-    .slice(0, 6);
-  elHistorico.innerHTML = historico.map(function(h){
-    return '<li><button type="button" data-codigo="' + escapar(h.codigo) + '">' +
-           escapar(h.nome) + "<small>" + escapar(h.codigo) + "</small></button></li>";
-  }).join("");
+  historico = [{codigo:p.codigo, nome:p.nome}]
+    .concat(historico.filter((h) => h.codigo !== p.codigo)).slice(0, 6);
+  elHistorico.innerHTML = historico.map((h) =>
+    '<li><button type="button" data-codigo="' + escapar(h.codigo) + '">' +
+    escapar(h.nome) + "<small>" + escapar(h.codigo) + "</small></button></li>").join("");
 }
 
-/* =========================================================================
-   6. Fluxo principal
-   ========================================================================= */
 async function consultar(codigo){
   codigo = String(codigo || "").replace(/\D/g, "");
-  if(codigo.length < 8){
-    mostrarEstado("Código muito curto. Digite os números que aparecem embaixo das barras.", true);
-    return;
-  }
-  mostrarEstado("Procurando o produto...", true);
+  if(codigo.length < 8){ mostrarEstado("Código incompleto.", true); return; }
+  mostrarEstado("Procurando o produto…", true);
   try{
     const p = await buscarProduto(codigo);
     if(p) mostrarProduto(p);
-    else mostrarEstado("Produto não encontrado. Este código ainda não está na base. Você pode cadastrá-lo para ajudar outras pessoas.", true);
+    else mostrarEstado("Produto não encontrado. Este código ainda não está na base.", true);
   }catch(e){
-    mostrarEstado("Não consegui consultar agora. Verifique a conexão com a internet e tente de novo.", true);
+    mostrarEstado("Não consegui consultar agora. Verifique a internet e tente de novo.", true);
   }
 }
 
 /* =========================================================================
-   7. Câmera — nativa (BarcodeDetector) com ZXing como reserva
+   7. CÂMERA
+   Ponto que quebrou antes: em vários navegadores de desktop o BarcodeDetector
+   existe mas não suporta EAN-13. Verificar só "BarcodeDetector in window"
+   levava o app a um caminho que nunca ia ler nada, em silêncio.
+   Agora perguntamos quais formatos ele realmente suporta e, na dúvida,
+   caímos no ZXing.
    ========================================================================= */
-async function ligarCamera(){
-  elVideo.classList.remove("oculto");
-  $("#btnParar").classList.remove("oculto");
-  $("#btnCamera").classList.add("oculto");
-  mostrarEstado("Câmera ligada. Aponte para o código de barras.", true);
+async function escolherMotor(){
+  if("BarcodeDetector" in window){
+    try{
+      const formatos = await window.BarcodeDetector.getSupportedFormats();
+      if(formatos.indexOf("ean_13") !== -1) return { tipo:"nativo", formatos: formatos };
+    }catch(e){ diag.erro = "BarcodeDetector indisponível: " + e.message; }
+  }
+  if(window.ZXing) return { tipo:"zxing" };
+  return { tipo:"nenhum" };
+}
 
-  const aoLer = function(codigo){
-    if(navigator.vibrate) navigator.vibrate(180);
+function atualizarDiag(){
+  elDiag.textContent =
+    "motor      : " + diag.motor + "\n" +
+    "resolução  : " + diag.resolucao + "\n" +
+    "quadros    : " + diag.quadros + "\n" +
+    "sinal sonar: " + Math.round(diag.nivel * 100) + "%\n" +
+    "erro       : " + (diag.erro || "nenhum");
+}
+
+async function ligarCamera(){
+  // AudioContext precisa nascer de um gesto do usuário — este clique.
+  try{
+    if(!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
+    if(audio.state === "suspended") await audio.resume();
+  }catch(e){ diag.erro = "áudio: " + e.message; }
+
+  $("#visor").classList.remove("oculto");
+  $("#sonar").classList.remove("oculto");
+  $("#barraCamera").classList.remove("oculto");
+  $("#btnCamera").classList.add("oculto");
+  mostrarEstado("Câmera ligada. Segure o celular parado e gire o produto na frente dele.", true);
+
+  const aoLer = (codigo) => {
+    const limpo = String(codigo).replace(/\D/g, "");
+    if(!digitoEanValido(limpo)) return;        // dígito verificador errado: ignora e continua
+    if(navigator.vibrate) navigator.vibrate([60, 40, 120]);
+    bip(1);
     desligarCamera();
-    consultar(codigo);
+    consultar(limpo);
   };
 
   try{
-    if("BarcodeDetector" in window){
-      const detector = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
-      const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
-      elVideo.srcObject = stream;
-      await elVideo.play();
-      let ativo = true;
-      pararCamera = function(){
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        facingMode: { ideal: "environment" },
+        width:  { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    });
+    const track = stream.getVideoTracks()[0];
+
+    // Foco contínuo quando o aparelho permite: sem isso o código sai borrado.
+    try{
+      const caps = track.getCapabilities ? track.getCapabilities() : {};
+      const avancado = [];
+      if(caps.focusMode && caps.focusMode.indexOf("continuous") !== -1) avancado.push({ focusMode:"continuous" });
+      if(avancado.length) await track.applyConstraints({ advanced: avancado });
+      if(caps.torch) $("#btnLanterna").classList.remove("oculto");
+    }catch(e){ diag.erro = "constraints: " + e.message; }
+
+    elVideo.srcObject = stream;
+    await elVideo.play();
+
+    const s = track.getSettings ? track.getSettings() : {};
+    diag.resolucao = (s.width || elVideo.videoWidth) + "×" + (s.height || elVideo.videoHeight);
+
+    const motor = await escolherMotor();
+    diag.motor = motor.tipo === "nativo" ? "BarcodeDetector (nativo)"
+               : motor.tipo === "zxing"  ? "ZXing (biblioteca)"
+               : "nenhum disponível";
+
+    let ativo = true;
+    let pararMotor = function(){};
+    camera = {
+      stream: stream, track: track,
+      parar: function(){
         ativo = false;
-        stream.getTracks().forEach(function(t){ t.stop(); });
+        try{ pararMotor(); }catch(e){}
+        stream.getTracks().forEach((t) => t.stop());
         elVideo.srcObject = null;
-      };
+      }
+    };
+
+    // Sonar roda independente do motor de leitura.
+    const lacoSonar = setInterval(function(){
+      if(!ativo){ clearInterval(lacoSonar); return; }
+      pulsoSonar(); atualizarDiag();
+    }, 120);
+
+    if(motor.tipo === "nativo"){
+      const detector = new window.BarcodeDetector({
+        formats: ["ean_13","ean_8","upc_a","upc_e","code_128"]
+      });
       const laco = async function(){
         if(!ativo) return;
         try{
           const achados = await detector.detect(elVideo);
+          diag.quadros++;
           if(achados.length){ aoLer(achados[0].rawValue); return; }
-        }catch(e){}
-        setTimeout(laco, 200);
+        }catch(e){ diag.erro = "detect: " + e.message; }
+        setTimeout(laco, 120);
       };
       laco();
-    } else if(window.ZXing){
-      const leitor = new ZXing.BrowserMultiFormatReader();
-      pararCamera = function(){ leitor.reset(); };
-      leitor.decodeFromVideoDevice(null, elVideo, function(r){ if(r) aoLer(r.getText()); });
+    } else if(motor.tipo === "zxing"){
+      const dicas = new Map();
+      dicas.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+        ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+        ZXing.BarcodeFormat.UPC_A,  ZXing.BarcodeFormat.UPC_E,
+        ZXing.BarcodeFormat.CODE_128
+      ]);
+      dicas.set(ZXing.DecodeHintType.TRY_HARDER, true);
+      const leitor = new ZXing.BrowserMultiFormatReader(dicas, { delayBetweenScanAttempts: 120 });
+      pararMotor = function(){ leitor.reset(); };
+      // Reaproveita o stream que já configuramos em alta resolução.
+      leitor.decodeFromStream(stream, elVideo, function(r, err){
+        diag.quadros++;
+        if(r) aoLer(r.getText());
+        else if(err && err.name && err.name !== "NotFoundException") diag.erro = err.name;
+      });
     } else {
       desligarCamera();
-      mostrarEstado("Este navegador não lê código de barras. Digite o número no campo abaixo.", true);
+      mostrarEstado("Este navegador não consegue ler código de barras.", true);
     }
+    atualizarDiag();
   }catch(e){
+    diag.erro = e.name + ": " + e.message;
+    atualizarDiag();
     desligarCamera();
-    mostrarEstado("Não consegui abrir a câmera. Autorize o acesso ou digite o número do código.", true);
+    mostrarEstado("Não consegui abrir a câmera. Autorize o acesso nas permissões do navegador.", true);
   }
 }
 
 function desligarCamera(){
-  try{ if(pararCamera) pararCamera(); }catch(e){}
-  pararCamera = null;
-  elVideo.classList.add("oculto");
-  $("#btnParar").classList.add("oculto");
+  try{ if(camera) camera.parar(); }catch(e){}
+  camera = null;
+  $("#visor").classList.add("oculto");
+  $("#sonar").classList.add("oculto");
+  $("#barraCamera").classList.add("oculto");
+  $("#btnLanterna").classList.add("oculto");
+  $("#btnLanterna").setAttribute("aria-pressed", "false");
   $("#btnCamera").classList.remove("oculto");
   $("#btnCamera").focus();
+  elSonarNivel.style.width = "0%";
 }
 
 /* =========================================================================
@@ -432,19 +622,24 @@ function desligarCamera(){
    ========================================================================= */
 $("#btnCamera").addEventListener("click", ligarCamera);
 $("#btnParar").addEventListener("click", function(){
-  desligarCamera();
-  mostrarEstado("Câmera desligada.", true);
+  desligarCamera(); mostrarEstado("Câmera desligada.", true);
+});
+
+$("#btnLanterna").addEventListener("click", async function(e){
+  if(!camera) return;
+  const ligar = e.currentTarget.getAttribute("aria-pressed") !== "true";
+  try{
+    await camera.track.applyConstraints({ advanced: [{ torch: ligar }] });
+    e.currentTarget.setAttribute("aria-pressed", String(ligar));
+  }catch(err){ diag.erro = "lanterna: " + err.message; atualizarDiag(); }
 });
 
 $("#formManual").addEventListener("submit", function(e){
-  e.preventDefault();
-  consultar($("#codigo").value);
+  e.preventDefault(); consultar($("#codigo").value);
 });
-
 document.querySelectorAll(".exemplo").forEach(function(b){
   b.addEventListener("click", function(){ consultar(b.dataset.codigo); });
 });
-
 elHistorico.addEventListener("click", function(e){
   const b = e.target.closest("button[data-codigo]");
   if(b) consultar(b.dataset.codigo);
@@ -469,13 +664,17 @@ $("#btnVoz").addEventListener("click", function(e){
   e.currentTarget.textContent = vozLigada ? "Voz ligada" : "Voz desligada";
   if(!vozLigada && "speechSynthesis" in window) speechSynthesis.cancel();
 });
+$("#btnSonar").addEventListener("click", function(e){
+  sonarLigado = !sonarLigado;
+  e.currentTarget.setAttribute("aria-pressed", String(sonarLigado));
+  e.currentTarget.textContent = sonarLigado ? "Bipe ligado" : "Bipe desligado";
+});
 $("#btnRepetir").addEventListener("click", function(){
   if(!ultimoTexto) return;
-  const guardado = vozLigada;
-  vozLigada = true;
-  falar(ultimoTexto);
-  vozLigada = guardado;
+  const guardado = vozLigada; vozLigada = true; falar(ultimoTexto); vozLigada = guardado;
 });
+
+atualizarDiag();
 </script>
 <script>
 /* Registra o service worker: é o que permite instalar na tela inicial e abrir offline. */
