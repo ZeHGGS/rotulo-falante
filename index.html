@@ -1,0 +1,489 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Rótulo Falante — protótipo</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#0d1315">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black">
+<meta name="apple-mobile-web-app-title" content="Rótulo">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
+<style>
+  /* ---------- Tokens ---------- */
+  :root{
+    --bg:#ffffff; --fg:#14161a; --fg-fraco:#4a5058;
+    --linha:#c9ced6; --card:#f4f6f9;
+    --acao:#0b5cd6; --acao-fg:#ffffff;
+    --alerta-bg:#fff2f2; --alerta-borda:#c62828; --alerta-fg:#8e1414;
+    --ok-bg:#eefaf1; --ok-borda:#1b7f3b; --ok-fg:#125c2a;
+    --escala:1;
+  }
+  /* Alto contraste: preto/amarelo, padrão consagrado para baixa visão */
+  html[data-contraste="alto"]{
+    --bg:#000000; --fg:#ffe600; --fg-fraco:#ffe600;
+    --linha:#ffe600; --card:#000000;
+    --acao:#ffe600; --acao-fg:#000000;
+    --alerta-bg:#000000; --alerta-borda:#ffe600; --alerta-fg:#ffe600;
+    --ok-bg:#000000; --ok-borda:#ffe600; --ok-fg:#ffe600;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--fg);
+    font:400 calc(1.125rem * var(--escala))/1.6 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+    padding:0 0 3rem;
+  }
+  .wrap{max-width:44rem; margin:0 auto; padding:1rem}
+  h1{font-size:calc(1.6rem * var(--escala)); margin:.2rem 0 .1rem; line-height:1.2}
+  h2{font-size:calc(1.15rem * var(--escala)); margin:1.5rem 0 .5rem}
+  .sub{color:var(--fg-fraco); margin:0 0 1rem; font-size:calc(.95rem * var(--escala))}
+
+  /* ---------- Alvos de toque grandes (WCAG 2.5.5) ---------- */
+  button, input, select{font:inherit; font-size:1em}
+  .btn{
+    display:flex; align-items:center; justify-content:center; gap:.5rem;
+    width:100%; min-height:4rem; padding:1rem 1.25rem;
+    background:var(--acao); color:var(--acao-fg);
+    border:3px solid transparent; border-radius:.75rem;
+    font-weight:700; cursor:pointer;
+  }
+  .btn.secundario{background:var(--bg); color:var(--fg); border-color:var(--linha)}
+  .btn:hover{filter:brightness(1.08)}
+  .btn:active{transform:translateY(1px)}
+  /* Foco sempre visível e grosso — requisito de navegação por teclado */
+  :focus-visible{outline:4px solid var(--acao); outline-offset:3px; border-radius:.4rem}
+  html[data-contraste="alto"] :focus-visible{outline-color:#ffffff}
+
+  .barra{display:flex; gap:.5rem; flex-wrap:wrap; margin:.75rem 0 1.25rem}
+  .barra button{
+    flex:1 1 auto; min-height:3rem; min-width:3.5rem; padding:.5rem .9rem;
+    background:var(--card); color:var(--fg); border:2px solid var(--linha);
+    border-radius:.6rem; cursor:pointer; font-weight:600;
+  }
+  .barra button[aria-pressed="true"]{background:var(--acao); color:var(--acao-fg); border-color:var(--acao)}
+
+  .campo{display:flex; gap:.5rem; flex-wrap:wrap}
+  .campo input{
+    flex:1 1 12rem; min-height:4rem; padding:.75rem 1rem;
+    border:3px solid var(--linha); border-radius:.75rem;
+    background:var(--bg); color:var(--fg); letter-spacing:.06em;
+  }
+  .campo .btn{flex:0 1 12rem}
+  label{display:block; font-weight:700; margin-bottom:.35rem}
+
+  #video{width:100%; max-height:60vh; border-radius:.75rem; border:3px solid var(--linha); background:#000; display:block}
+  .oculto{display:none !important}
+
+  .cartao{border:3px solid var(--linha); border-radius:.9rem; padding:1rem 1.15rem; margin:1rem 0; background:var(--card)}
+  .cartao h3{margin:.1rem 0 .3rem; font-size:calc(1.35rem * var(--escala)); line-height:1.25}
+  .marca{color:var(--fg-fraco); margin:0 0 .75rem}
+  .linha-dado{margin:.7rem 0}
+  .rotulo{font-weight:700; display:block}
+
+  .alerta{background:var(--alerta-bg); border:3px solid var(--alerta-borda); color:var(--alerta-fg);
+          border-radius:.75rem; padding:.9rem 1rem; margin:.9rem 0; font-weight:700}
+  .seguro{background:var(--ok-bg); border:3px solid var(--ok-borda); color:var(--ok-fg);
+          border-radius:.75rem; padding:.9rem 1rem; margin:.9rem 0; font-weight:700}
+  .selo{display:inline-block; border:2px solid var(--linha); border-radius:2rem;
+        padding:.15rem .7rem; font-size:calc(.8rem * var(--escala)); color:var(--fg-fraco); margin-top:.6rem}
+
+  ul.hist{list-style:none; padding:0; margin:0}
+  ul.hist li{border-bottom:2px solid var(--linha)}
+  ul.hist button{
+    width:100%; text-align:left; background:none; border:0; color:var(--fg);
+    padding:1rem .25rem; min-height:3.5rem; cursor:pointer; font-weight:600;
+  }
+  ul.hist small{display:block; font-weight:400; color:var(--fg-fraco)}
+
+  footer{margin-top:2.5rem; padding-top:1rem; border-top:2px solid var(--linha);
+         color:var(--fg-fraco); font-size:calc(.9rem * var(--escala))}
+  /* Conteúdo só para leitor de tela */
+  .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important; animation:none !important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1>Rótulo Falante</h1>
+    <p class="sub">Aponte a câmera para o código de barras. O aplicativo fala o que é o produto.</p>
+  </header>
+
+  <!-- Controles de acessibilidade: o próprio app precisa ser acessível (exigência do slide 15) -->
+  <div class="barra" role="group" aria-label="Ajustes de acessibilidade">
+    <button type="button" id="btnMenor" aria-label="Diminuir tamanho do texto">A&minus;</button>
+    <button type="button" id="btnMaior" aria-label="Aumentar tamanho do texto">A+</button>
+    <button type="button" id="btnContraste" aria-pressed="false">Alto contraste</button>
+    <button type="button" id="btnVoz" aria-pressed="true">Voz ligada</button>
+    <button type="button" id="btnRepetir">Repetir</button>
+  </div>
+
+  <h2>Ler um produto</h2>
+  <button type="button" class="btn" id="btnCamera" aria-describedby="ajudaCamera">
+    Escanear com a c&acirc;mera
+  </button>
+  <p class="sub" id="ajudaCamera">Se a câmera não abrir, digite os números do código de barras abaixo.</p>
+
+  <video id="video" class="oculto" playsinline muted aria-label="Imagem da câmera procurando um código de barras"></video>
+  <button type="button" class="btn secundario oculto" id="btnParar">Parar c&acirc;mera</button>
+
+  <form id="formManual" novalidate>
+    <label for="codigo">Ou digite o código de barras</label>
+    <div class="campo">
+      <input id="codigo" name="codigo" type="text" inputmode="numeric" autocomplete="off"
+             placeholder="7891000100103" aria-describedby="ajudaCodigo">
+      <button class="btn" type="submit">Buscar</button>
+    </div>
+    <p class="sub" id="ajudaCodigo">São os números que ficam embaixo das barras, geralmente 13 dígitos.</p>
+  </form>
+
+  <h2>Exemplos para testar agora</h2>
+  <div class="barra" role="group" aria-label="Códigos de exemplo">
+    <button type="button" class="exemplo" data-codigo="7891000100103">Leite condensado</button>
+    <button type="button" class="exemplo" data-codigo="7891910000197">Açúcar</button>
+    <button type="button" class="exemplo" data-codigo="7896714200019">Dipirona 500mg</button>
+    <button type="button" class="exemplo" data-codigo="7896006201014">Paracetamol 750mg</button>
+    <button type="button" class="exemplo" data-codigo="7896112110019">Amoxicilina 500mg</button>
+  </div>
+
+  <!-- Região viva: o leitor de tela anuncia sozinho quando o resultado chega -->
+  <div id="resultado" role="status" aria-live="polite" aria-atomic="true"></div>
+  <div id="urgente" role="alert" aria-live="assertive" class="sr"></div>
+
+  <h2>Últimos produtos lidos</h2>
+  <ul class="hist" id="historico"><li><span class="sub">Nada lido ainda.</span></li></ul>
+
+  <footer>
+    <p><strong>Protótipo acadêmico.</strong> Os dados de medicamentos aqui são de demonstração,
+    cadastrados manualmente pela equipe (abordagem <em>MVP Concierge</em>). Não substituem a bula
+    nem orientação de médico ou farmacêutico.</p>
+    <p>Alimentos: consulta ao Open Food Facts (base pública e colaborativa). Voz: sintetizador do próprio navegador.</p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* =========================================================================
+   1. BASE CURADA (MVP Concierge)
+   Tudo que a equipe cadastra na mão. É aqui que entram os medicamentos,
+   porque a ANVISA não oferece API pública aberta para consulta direta.
+   Para a banca: acrescente aqui os produtos que vocês vão escanear ao vivo.
+   ========================================================================= */
+const CATALOGO_LOCAL = {
+  "7896714200019": {
+    tipo: "medicamento",
+    nome: "Dipirona Sódica 500 mg",
+    marca: "Genérico — comprimido",
+    quantidade: "10 comprimidos",
+    indicacao: "Dor e febre.",
+    posologia: "Adulto: 1 comprimido a cada 6 horas. Não passe de 4 comprimidos por dia.",
+    contraindicacao: "Não use se você tem alergia a dipirona, problema grave de rim ou fígado, ou se estiver grávida no último trimestre.",
+    alertas: ["Não tome junto com bebida alcoólica."]
+  },
+  "7896006201014": {
+    tipo: "medicamento",
+    nome: "Paracetamol 750 mg",
+    marca: "Genérico — comprimido",
+    quantidade: "20 comprimidos",
+    indicacao: "Dor e febre.",
+    posologia: "Adulto: 1 comprimido a cada 6 horas. Máximo de 5 comprimidos por dia.",
+    contraindicacao: "Não use se você tem doença no fígado. Cuidado: muitos remédios de gripe já têm paracetamol, não tome os dois juntos.",
+    alertas: ["Risco de dano ao fígado se passar da dose."]
+  },
+  "7896112110019": {
+    tipo: "medicamento",
+    nome: "Amoxicilina 500 mg",
+    marca: "Genérico — cápsula",
+    quantidade: "21 cápsulas",
+    indicacao: "Antibiótico para infecção bacteriana.",
+    posologia: "Conforme receita médica. Normalmente 1 cápsula a cada 8 horas.",
+    contraindicacao: "Não use se você tem alergia a penicilina.",
+    alertas: ["Antibiótico só com receita.", "Termine o tratamento inteiro, mesmo se melhorar antes."]
+  },
+  "7891910000197": {
+    tipo: "alimento",
+    nome: "Açúcar Refinado",
+    marca: "Base local de demonstração",
+    quantidade: "1 kg",
+    ingredientes: "Açúcar refinado.",
+    alergenos: []
+  }
+};
+
+/* Tradução das etiquetas de alérgeno do Open Food Facts */
+const ALERGENOS_PT = {
+  "en:gluten":"glúten", "en:milk":"leite", "en:eggs":"ovos", "en:nuts":"castanhas",
+  "en:peanuts":"amendoim", "en:soybeans":"soja", "en:fish":"peixe", "en:crustaceans":"crustáceos",
+  "en:sesame-seeds":"gergelim", "en:mustard":"mostarda", "en:celery":"aipo", "en:molluscs":"moluscos",
+  "en:lupin":"tremoço", "en:sulphur-dioxide-and-sulphites":"sulfitos"
+};
+
+/* =========================================================================
+   2. Estado e elementos
+   ========================================================================= */
+const $ = (s) => document.querySelector(s);
+const elResultado = $("#resultado");
+const elUrgente   = $("#urgente");
+const elVideo     = $("#video");
+const elHistorico = $("#historico");
+
+let vozLigada = true;
+let escala = 1;
+let ultimoTexto = "";
+let historico = [];
+let pararCamera = null;   // função de limpeza, definida ao ligar a câmera
+
+/* =========================================================================
+   3. Voz (Web Speech API — nativa do navegador, sem custo)
+   ========================================================================= */
+function falar(texto){
+  ultimoTexto = texto;
+  if(!vozLigada || !("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const fala = new SpeechSynthesisUtterance(texto);
+  fala.lang = "pt-BR";
+  fala.rate = 0.95;   // um pouco mais devagar: público idoso e com baixa visão
+  speechSynthesis.speak(fala);
+}
+
+/* =========================================================================
+   4. Busca: primeiro a base curada, depois o Open Food Facts
+   ========================================================================= */
+async function buscarProduto(codigo){
+  if(CATALOGO_LOCAL[codigo]){
+    return Object.assign({ codigo: codigo, fonte: "Base curada pela equipe" }, CATALOGO_LOCAL[codigo]);
+  }
+
+  const campos = "product_name,product_name_pt,brands,quantity,ingredients_text_pt,ingredients_text,allergens_tags,traces_tags";
+  const url = "https://world.openfoodfacts.org/api/v2/product/" + encodeURIComponent(codigo) + ".json?fields=" + campos;
+  const resposta = await fetch(url);
+  if(!resposta.ok) throw new Error("rede");
+  const dados = await resposta.json();
+  const p = dados && dados.product;
+  if(!p || (!p.product_name && !p.product_name_pt)) return null;
+
+  const tags = [].concat(p.allergens_tags || [], p.traces_tags || []);
+  const alergenos = Array.from(new Set(tags.map(function(t){ return ALERGENOS_PT[t]; }).filter(Boolean)));
+
+  return {
+    codigo: codigo, tipo: "alimento", fonte: "Open Food Facts",
+    nome: p.product_name_pt || p.product_name,
+    marca: p.brands || "",
+    quantidade: p.quantity || "",
+    ingredientes: p.ingredients_text_pt || p.ingredients_text || "",
+    alergenos: alergenos
+  };
+}
+
+/* =========================================================================
+   5. Montagem da tela e do texto falado
+   ========================================================================= */
+function escapar(s){
+  const mapa = {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"};
+  return String(s == null ? "" : s).replace(/[&<>"]/g, function(c){ return mapa[c]; });
+}
+
+function mostrarEstado(mensagem, falarTambem){
+  elResultado.innerHTML = '<div class="cartao"><p style="margin:0">' + escapar(mensagem) + '</p></div>';
+  if(falarTambem) falar(mensagem);
+}
+
+function mostrarProduto(p){
+  const partes = [];
+  let html = '<div class="cartao">';
+  html += "<h3>" + escapar(p.nome) + "</h3>";
+  partes.push(p.nome);
+
+  if(p.marca){ html += '<p class="marca">' + escapar(p.marca) + "</p>"; partes.push(p.marca); }
+  if(p.quantidade){
+    partes.push(p.quantidade);
+    html += '<p class="linha-dado"><span class="rotulo">Quantidade</span>' + escapar(p.quantidade) + "</p>";
+  }
+
+  if(p.tipo === "medicamento"){
+    html += '<p class="linha-dado"><span class="rotulo">Para que serve</span>' + escapar(p.indicacao) + "</p>";
+    html += '<p class="linha-dado"><span class="rotulo">Como tomar</span>' + escapar(p.posologia) + "</p>";
+    partes.push("Para que serve: " + p.indicacao, "Como tomar: " + p.posologia);
+    html += '<div class="alerta"><span class="rotulo">Quando NÃO tomar</span>' + escapar(p.contraindicacao) + "</div>";
+    partes.push("Atenção. Quando não tomar: " + p.contraindicacao);
+    (p.alertas || []).forEach(function(a){
+      html += '<div class="alerta">' + escapar(a) + "</div>";
+      partes.push(a);
+    });
+    elUrgente.textContent = "Medicamento. Leia as contraindicações.";
+  } else {
+    if(p.alergenos && p.alergenos.length){
+      const lista = p.alergenos.join(", ");
+      html += '<div class="alerta"><span class="rotulo">Contém alérgenos</span>' + escapar(lista) + "</div>";
+      partes.push("Atenção. Contém " + lista);
+      elUrgente.textContent = "Alerta de alérgeno: contém " + lista;
+    } else {
+      html += '<div class="seguro">Nenhum alérgeno informado no rótulo.</div>';
+      partes.push("Nenhum alérgeno informado.");
+    }
+    if(p.ingredientes){
+      html += '<p class="linha-dado"><span class="rotulo">Ingredientes</span>' + escapar(p.ingredientes) + "</p>";
+      partes.push("Ingredientes: " + p.ingredientes);
+    }
+  }
+
+  html += '<span class="selo">Fonte: ' + escapar(p.fonte) + " &middot; código " + escapar(p.codigo) + "</span></div>";
+  elResultado.innerHTML = html;
+  falar(partes.join(". "));
+  registrarHistorico(p);
+}
+
+function registrarHistorico(p){
+  historico = [{codigo: p.codigo, nome: p.nome}]
+    .concat(historico.filter(function(h){ return h.codigo !== p.codigo; }))
+    .slice(0, 6);
+  elHistorico.innerHTML = historico.map(function(h){
+    return '<li><button type="button" data-codigo="' + escapar(h.codigo) + '">' +
+           escapar(h.nome) + "<small>" + escapar(h.codigo) + "</small></button></li>";
+  }).join("");
+}
+
+/* =========================================================================
+   6. Fluxo principal
+   ========================================================================= */
+async function consultar(codigo){
+  codigo = String(codigo || "").replace(/\D/g, "");
+  if(codigo.length < 8){
+    mostrarEstado("Código muito curto. Digite os números que aparecem embaixo das barras.", true);
+    return;
+  }
+  mostrarEstado("Procurando o produto...", true);
+  try{
+    const p = await buscarProduto(codigo);
+    if(p) mostrarProduto(p);
+    else mostrarEstado("Produto não encontrado. Este código ainda não está na base. Você pode cadastrá-lo para ajudar outras pessoas.", true);
+  }catch(e){
+    mostrarEstado("Não consegui consultar agora. Verifique a conexão com a internet e tente de novo.", true);
+  }
+}
+
+/* =========================================================================
+   7. Câmera — nativa (BarcodeDetector) com ZXing como reserva
+   ========================================================================= */
+async function ligarCamera(){
+  elVideo.classList.remove("oculto");
+  $("#btnParar").classList.remove("oculto");
+  $("#btnCamera").classList.add("oculto");
+  mostrarEstado("Câmera ligada. Aponte para o código de barras.", true);
+
+  const aoLer = function(codigo){
+    if(navigator.vibrate) navigator.vibrate(180);
+    desligarCamera();
+    consultar(codigo);
+  };
+
+  try{
+    if("BarcodeDetector" in window){
+      const detector = new BarcodeDetector({formats:["ean_13","ean_8","upc_a","upc_e","code_128"]});
+      const stream = await navigator.mediaDevices.getUserMedia({video:{facingMode:"environment"}});
+      elVideo.srcObject = stream;
+      await elVideo.play();
+      let ativo = true;
+      pararCamera = function(){
+        ativo = false;
+        stream.getTracks().forEach(function(t){ t.stop(); });
+        elVideo.srcObject = null;
+      };
+      const laco = async function(){
+        if(!ativo) return;
+        try{
+          const achados = await detector.detect(elVideo);
+          if(achados.length){ aoLer(achados[0].rawValue); return; }
+        }catch(e){}
+        setTimeout(laco, 200);
+      };
+      laco();
+    } else if(window.ZXing){
+      const leitor = new ZXing.BrowserMultiFormatReader();
+      pararCamera = function(){ leitor.reset(); };
+      leitor.decodeFromVideoDevice(null, elVideo, function(r){ if(r) aoLer(r.getText()); });
+    } else {
+      desligarCamera();
+      mostrarEstado("Este navegador não lê código de barras. Digite o número no campo abaixo.", true);
+    }
+  }catch(e){
+    desligarCamera();
+    mostrarEstado("Não consegui abrir a câmera. Autorize o acesso ou digite o número do código.", true);
+  }
+}
+
+function desligarCamera(){
+  try{ if(pararCamera) pararCamera(); }catch(e){}
+  pararCamera = null;
+  elVideo.classList.add("oculto");
+  $("#btnParar").classList.add("oculto");
+  $("#btnCamera").classList.remove("oculto");
+  $("#btnCamera").focus();
+}
+
+/* =========================================================================
+   8. Eventos
+   ========================================================================= */
+$("#btnCamera").addEventListener("click", ligarCamera);
+$("#btnParar").addEventListener("click", function(){
+  desligarCamera();
+  mostrarEstado("Câmera desligada.", true);
+});
+
+$("#formManual").addEventListener("submit", function(e){
+  e.preventDefault();
+  consultar($("#codigo").value);
+});
+
+document.querySelectorAll(".exemplo").forEach(function(b){
+  b.addEventListener("click", function(){ consultar(b.dataset.codigo); });
+});
+
+elHistorico.addEventListener("click", function(e){
+  const b = e.target.closest("button[data-codigo]");
+  if(b) consultar(b.dataset.codigo);
+});
+
+$("#btnMaior").addEventListener("click", function(){
+  escala = Math.min(escala + 0.15, 2);
+  document.documentElement.style.setProperty("--escala", escala);
+});
+$("#btnMenor").addEventListener("click", function(){
+  escala = Math.max(escala - 0.15, 0.85);
+  document.documentElement.style.setProperty("--escala", escala);
+});
+$("#btnContraste").addEventListener("click", function(e){
+  const ligado = document.documentElement.dataset.contraste === "alto";
+  document.documentElement.dataset.contraste = ligado ? "" : "alto";
+  e.currentTarget.setAttribute("aria-pressed", String(!ligado));
+});
+$("#btnVoz").addEventListener("click", function(e){
+  vozLigada = !vozLigada;
+  e.currentTarget.setAttribute("aria-pressed", String(vozLigada));
+  e.currentTarget.textContent = vozLigada ? "Voz ligada" : "Voz desligada";
+  if(!vozLigada && "speechSynthesis" in window) speechSynthesis.cancel();
+});
+$("#btnRepetir").addEventListener("click", function(){
+  if(!ultimoTexto) return;
+  const guardado = vozLigada;
+  vozLigada = true;
+  falar(ultimoTexto);
+  vozLigada = guardado;
+});
+</script>
+<script>
+/* Registra o service worker: é o que permite instalar na tela inicial e abrir offline. */
+if ("serviceWorker" in navigator) {
+  window.addEventListener("load", function () {
+    navigator.serviceWorker.register("sw.js").catch(function () {});
+  });
+}
+</script>
+</body>
+</html>
