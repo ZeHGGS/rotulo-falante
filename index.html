@@ -14,7 +14,6 @@
 <link rel="icon" href="icon-192.png">
 <script src="https://cdn.jsdelivr.net/npm/@zxing/library@0.21.3/umd/index.min.js"></script>
 <style>
-  /* ---------- Tokens ---------- */
   :root{
     --bg:#ffffff; --fg:#14161a; --fg-fraco:#4a5058;
     --linha:#c9ced6; --card:#f4f6f9;
@@ -23,7 +22,6 @@
     --ok-bg:#eefaf1; --ok-borda:#1b7f3b; --ok-fg:#125c2a;
     --escala:1;
   }
-  /* Alto contraste: preto/amarelo, padrão consagrado para baixa visão */
   html[data-contraste="alto"]{
     --bg:#000000; --fg:#ffe600; --fg-fraco:#ffe600;
     --linha:#ffe600; --card:#000000;
@@ -42,7 +40,6 @@
   h2{font-size:calc(1.15rem * var(--escala)); margin:1.5rem 0 .5rem}
   .sub{color:var(--fg-fraco); margin:0 0 1rem; font-size:calc(.95rem * var(--escala))}
 
-  /* ---------- Alvos de toque grandes (WCAG 2.5.5) ---------- */
   button, input, select{font:inherit; font-size:1em}
   .btn{
     display:flex; align-items:center; justify-content:center; gap:.5rem;
@@ -54,7 +51,6 @@
   .btn.secundario{background:var(--bg); color:var(--fg); border-color:var(--linha)}
   .btn:hover{filter:brightness(1.08)}
   .btn:active{transform:translateY(1px)}
-  /* Foco sempre visível e grosso — requisito de navegação por teclado */
   :focus-visible{outline:4px solid var(--acao); outline-offset:3px; border-radius:.4rem}
   html[data-contraste="alto"] :focus-visible{outline-color:#ffffff}
 
@@ -67,7 +63,7 @@
   .barra button[aria-pressed="true"]{background:var(--acao); color:var(--acao-fg); border-color:var(--acao)}
 
   .campo{display:flex; gap:.5rem; flex-wrap:wrap}
-  .campo input{
+  .campo input[type=text]{
     flex:1 1 12rem; min-height:3.5rem; padding:.75rem 1rem;
     border:3px solid var(--linha); border-radius:.75rem;
     background:var(--bg); color:var(--fg); letter-spacing:.06em;
@@ -75,22 +71,28 @@
   .campo .btn{flex:0 1 10rem; min-height:3.5rem}
   label{display:block; font-weight:700; margin-bottom:.35rem}
 
-  /* ---------- Área da câmera ---------- */
   .visor{position:relative; margin:.5rem 0}
   #video{width:100%; max-height:60vh; border-radius:.75rem; border:3px solid var(--linha); background:#000; display:block}
-  /* Faixa que marca onde o código precisa passar. Serve ao vidente e à demonstração. */
   .mira{
-    position:absolute; left:8%; right:8%; top:37.5%; height:25%;
-    border:3px solid rgba(255,255,255,.85); border-radius:.4rem; pointer-events:none;
-    box-shadow:0 0 0 100vmax rgba(0,0,0,.35);
+    position:absolute; left:5%; right:5%; top:30%; height:40%;
+    border:3px solid rgba(255,255,255,.9); border-radius:.4rem; pointer-events:none;
+    box-shadow:0 0 0 100vmax rgba(0,0,0,.3);
   }
   .oculto{display:none !important}
 
-  /* ---------- Guia sonoro: medidor visível do sinal ---------- */
   .sonar{margin:.5rem 0 0}
   .sonar-trilho{height:1.1rem; border:2px solid var(--linha); border-radius:.6rem; overflow:hidden; background:var(--card)}
   .sonar-nivel{height:100%; width:0%; background:var(--acao); transition:width .12s linear}
   html[data-contraste="alto"] .sonar-nivel{background:var(--fg)}
+
+  /* Telemetria sempre à vista enquanto a câmera roda */
+  .telemetria{
+    margin:.4rem 0 0; padding:.5rem .7rem;
+    background:var(--card); border:2px solid var(--linha); border-radius:.5rem;
+    font:600 calc(.82rem * var(--escala))/1.45 ui-monospace,Consolas,monospace;
+    color:var(--fg); word-break:break-word;
+  }
+  .telemetria .falha{color:var(--alerta-fg); font-weight:700}
 
   .cartao{border:3px solid var(--linha); border-radius:.9rem; padding:1rem 1.15rem; margin:1rem 0; background:var(--card)}
   .cartao h3{margin:.1rem 0 .3rem; font-size:calc(1.35rem * var(--escala)); line-height:1.25}
@@ -113,19 +115,17 @@
   }
   ul.hist small{display:block; font-weight:400; color:var(--fg-fraco)}
 
-  /* ---------- Bancada da equipe ---------- */
   details.bancada{margin-top:2rem; border:2px dashed var(--linha); border-radius:.75rem; padding:.75rem 1rem}
   details.bancada summary{cursor:pointer; font-weight:700; padding:.5rem 0; min-height:2.75rem}
-  details.bancada .sub{margin-top:.25rem}
-  pre.diag{
-    margin:.5rem 0 0; padding:.75rem; overflow-x:auto;
-    background:var(--card); border:2px solid var(--linha); border-radius:.5rem;
-    font:600 calc(.85rem * var(--escala))/1.5 ui-monospace,Consolas,monospace; color:var(--fg);
-  }
+  #lonaTeste{width:100%; max-width:22rem; height:auto; background:#fff; border:2px solid var(--linha);
+             border-radius:.4rem; margin:.5rem 0; display:block}
+  .resultado-teste{padding:.7rem .9rem; border-radius:.5rem; border:2px solid var(--linha);
+                   background:var(--card); margin:.5rem 0; font-weight:700}
+  .resultado-teste.ok{background:var(--ok-bg); border-color:var(--ok-borda); color:var(--ok-fg)}
+  .resultado-teste.falhou{background:var(--alerta-bg); border-color:var(--alerta-borda); color:var(--alerta-fg)}
 
   footer{margin-top:2.5rem; padding-top:1rem; border-top:2px solid var(--linha);
          color:var(--fg-fraco); font-size:calc(.9rem * var(--escala))}
-  /* Conteúdo só para leitor de tela */
   .sr{position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap}
   @media (prefers-reduced-motion:reduce){*{transition:none !important; animation:none !important}}
 </style>
@@ -138,7 +138,6 @@
     <p class="sub">Segure o celular parado e gire o produto na frente dele. O bipe acelera quando o código entra no quadro.</p>
   </header>
 
-  <!-- Controles de acessibilidade: o próprio app precisa ser acessível (exigência do slide 15) -->
   <div class="barra" role="group" aria-label="Ajustes de acessibilidade">
     <button type="button" id="btnMenor" aria-label="Diminuir tamanho do texto">A&minus;</button>
     <button type="button" id="btnMaior" aria-label="Aumentar tamanho do texto">A+</button>
@@ -160,12 +159,14 @@
     <p class="sub" id="sonarTexto" style="margin:.35rem 0 0">Procurando…</p>
   </div>
 
+  <!-- Telemetria visível: precisa dar para saber se está buscando ou se quebrou -->
+  <pre class="telemetria oculto" id="telemetria" aria-live="off"></pre>
+
   <div class="barra oculto" id="barraCamera">
     <button type="button" id="btnLanterna" class="oculto" aria-pressed="false">Lanterna</button>
     <button type="button" id="btnParar">Parar câmera</button>
   </div>
 
-  <!-- Região viva: o leitor de tela anuncia sozinho quando o resultado chega -->
   <div id="resultado" role="status" aria-live="polite" aria-atomic="true"></div>
   <div id="urgente" role="alert" aria-live="assertive" class="sr"></div>
 
@@ -176,13 +177,25 @@
        Bancada da equipe.
        Digitar código de barras NÃO faz parte do fluxo do usuário:
        quem é cego não lê os números impressos embaixo das barras.
-       Fica aqui só para testar e para cadastrar a base.
        =========================================================== -->
-  <details class="bancada">
+  <details class="bancada" id="bancada">
     <summary>Bancada de teste da equipe</summary>
-    <p class="sub">Não faz parte do fluxo do usuário. Digitar o código exige enxergar os
-    números impressos na embalagem — serve para testar e para alimentar a base.</p>
 
+    <h2 style="margin-top:1rem">Auto-teste do decodificador</h2>
+    <p class="sub">Geramos um EAN-13 válido aqui na tela e mandamos o decodificador lê-lo.
+    Se passar aqui e falhar na câmera, o problema é de captura (foco, luz, distância),
+    não de decodificação.</p>
+    <canvas id="lonaTeste" width="380" height="150"></canvas>
+    <div class="resultado-teste" id="resultadoTeste">Rodando…</div>
+    <div class="barra">
+      <button type="button" id="btnAutoTeste">Repetir auto-teste</button>
+    </div>
+
+    <h2>Ler de uma foto</h2>
+    <p class="sub">Tire uma foto do código e envie. Isola problema de foco da câmera ao vivo.</p>
+    <input type="file" id="arquivo" accept="image/*" style="margin-bottom:1rem">
+
+    <h2>Consulta direta</h2>
     <form id="formManual" novalidate>
       <label for="codigo">Código de barras</label>
       <div class="campo">
@@ -199,8 +212,6 @@
       <button type="button" class="exemplo" data-codigo="7896006201014">Paracetamol</button>
       <button type="button" class="exemplo" data-codigo="7896112110019">Amoxicilina</button>
     </div>
-
-    <pre class="diag" id="diag" aria-live="off">Câmera desligada.</pre>
   </details>
 
   <footer>
@@ -216,8 +227,6 @@
 
 /* =========================================================================
    1. BASE CURADA (MVP Concierge)
-   Cadastre aqui os produtos que vocês vão escanear na banca.
-   Nunca dependa da internet da faculdade na hora da apresentação.
    ========================================================================= */
 const CATALOGO_LOCAL = {
   "7896714200019": {
@@ -252,10 +261,10 @@ const CATALOGO_LOCAL = {
 };
 
 const ALERGENOS_PT = {
-  "en:gluten":"glúten", "en:milk":"leite", "en:eggs":"ovos", "en:nuts":"castanhas",
-  "en:peanuts":"amendoim", "en:soybeans":"soja", "en:fish":"peixe", "en:crustaceans":"crustáceos",
-  "en:sesame-seeds":"gergelim", "en:mustard":"mostarda", "en:celery":"aipo", "en:molluscs":"moluscos",
-  "en:lupin":"tremoço", "en:sulphur-dioxide-and-sulphites":"sulfitos"
+  "en:gluten":"glúten","en:milk":"leite","en:eggs":"ovos","en:nuts":"castanhas",
+  "en:peanuts":"amendoim","en:soybeans":"soja","en:fish":"peixe","en:crustaceans":"crustáceos",
+  "en:sesame-seeds":"gergelim","en:mustard":"mostarda","en:celery":"aipo","en:molluscs":"moluscos",
+  "en:lupin":"tremoço","en:sulphur-dioxide-and-sulphites":"sulfitos"
 };
 
 /* =========================================================================
@@ -264,12 +273,13 @@ const ALERGENOS_PT = {
 const $ = (s) => document.querySelector(s);
 const elResultado = $("#resultado"), elUrgente = $("#urgente");
 const elVideo = $("#video"), elHistorico = $("#historico");
-const elDiag = $("#diag"), elSonarNivel = $("#sonarNivel"), elSonarTexto = $("#sonarTexto");
+const elTelemetria = $("#telemetria");
+const elSonarNivel = $("#sonarNivel"), elSonarTexto = $("#sonarTexto");
 
 let vozLigada = true, sonarLigado = true, escala = 1;
 let ultimoTexto = "", historico = [];
-let camera = null;               // { stream, track, parar() }
-let diag = { motor:"—", resolucao:"—", quadros:0, nivel:0, erro:"" };
+let camera = null;
+let tel = { motor:"—", resolucao:"—", tentativas:0, taxa:0, nivel:0, erro:"", inicio:0 };
 
 /* =========================================================================
    3. Voz
@@ -284,23 +294,175 @@ function falar(texto){
 }
 
 /* =========================================================================
-   4. GUIA SONORO
-   Não dá para pedir a alguém que não enxerga "aponte para o código".
-   Então medimos, quadro a quadro, quanta coisa parecida com código de barras
-   existe no centro da imagem, e transformamos isso em bipe: lento quando não
-   há nada, acelerando conforme as barras entram no quadro. É o mesmo princípio
-   do sensor de ré. A pessoa se orienta pelo som, não pela imagem.
+   4. GERADOR DE EAN-13
+   Serve a dois propósitos: provar que o decodificador funciona (auto-teste)
+   e dar à equipe um código impresso para ensaiar a demonstração da banca.
+   ========================================================================= */
+const EAN_L = ["0001101","0011001","0010011","0111101","0100011","0110001","0101111","0111011","0110111","0001011"];
+const EAN_G = ["0100111","0110011","0011011","0100001","0011101","0111001","0000101","0010001","0001001","0010111"];
+const EAN_R = ["1110010","1100110","1101100","1000010","1011100","1001110","1010000","1000100","1001000","1110100"];
+const EAN_PARIDADE = ["LLLLLL","LLGLGG","LLGGLG","LLGGGL","LGLLGG","LGGLLG","LGGGLL","LGLGLG","LGLGGL","LGGLGL"];
+
+function modulosEan13(codigo){
+  const d = codigo.split("").map(Number);
+  const paridade = EAN_PARIDADE[d[0]];
+  let bits = "101";                                   // guarda inicial
+  for(let i = 1; i <= 6; i++){
+    bits += (paridade[i-1] === "L" ? EAN_L : EAN_G)[d[i]];
+  }
+  bits += "01010";                                    // guarda central
+  for(let i = 7; i <= 12; i++) bits += EAN_R[d[i]];
+  bits += "101";                                      // guarda final
+  return bits;
+}
+
+function desenharEan13(lona, codigo){
+  const bits = modulosEan13(codigo);
+  const ctx = lona.getContext("2d");
+  const margem = 20;
+  const larguraModulo = Math.floor((lona.width - margem * 2) / bits.length);
+  const alturaBarra = lona.height - 44;
+
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, lona.width, lona.height);
+  ctx.fillStyle = "#000000";
+  for(let i = 0; i < bits.length; i++){
+    if(bits[i] === "1") ctx.fillRect(margem + i * larguraModulo, 14, larguraModulo, alturaBarra);
+  }
+  ctx.font = "16px ui-monospace, Consolas, monospace";
+  ctx.textAlign = "center";
+  ctx.fillText(codigo, lona.width / 2, lona.height - 12);
+}
+
+/* =========================================================================
+   5. DECODIFICADOR
+   Um caminho único: sempre entregamos um <canvas> ao motor. Assim o mesmo
+   código serve para vídeo ao vivo, foto enviada e auto-teste — e dá para
+   saber exatamente onde falhou.
+   ========================================================================= */
+let motorTipo = null;          // "nativo" | "zxing" | "nenhum"
+let detectorNativo = null;
+let leitorZxing = null;
+
+async function prepararMotor(){
+  if(motorTipo) return motorTipo;
+
+  if("BarcodeDetector" in window){
+    try{
+      const formatos = await window.BarcodeDetector.getSupportedFormats();
+      if(formatos.indexOf("ean_13") !== -1){
+        detectorNativo = new window.BarcodeDetector({
+          formats: ["ean_13","ean_8","upc_a","upc_e","code_128"]
+        });
+        motorTipo = "nativo";
+        tel.motor = "BarcodeDetector nativo";
+        return motorTipo;
+      }
+      tel.erro = "BarcodeDetector existe mas não suporta EAN-13";
+    }catch(e){ tel.erro = "BarcodeDetector: " + e.message; }
+  }
+
+  if(window.ZXing){
+    const dicas = new Map();
+    dicas.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
+      ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
+      ZXing.BarcodeFormat.UPC_A,  ZXing.BarcodeFormat.UPC_E,
+      ZXing.BarcodeFormat.CODE_128
+    ]);
+    dicas.set(ZXing.DecodeHintType.TRY_HARDER, true);
+    // BrowserMultiFormatReader cuida da conversão de luminância internamente.
+    leitorZxing = new ZXing.BrowserMultiFormatReader(dicas);
+    motorTipo = "zxing";
+    tel.motor = "ZXing " + (ZXing.VERSION || "");
+    return motorTipo;
+  }
+
+  motorTipo = "nenhum";
+  tel.motor = "nenhum (biblioteca não carregou)";
+  return motorTipo;
+}
+
+/* Lê um canvas. Devolve o código ou null. Erros reais vão para tel.erro. */
+async function lerDoCanvas(lona){
+  try{
+    if(motorTipo === "nativo"){
+      const achados = await detectorNativo.detect(lona);
+      return achados.length ? achados[0].rawValue : null;
+    }
+    if(motorTipo === "zxing"){
+      try{
+        const r = leitorZxing.decodeFromCanvas(lona);
+        return r ? r.getText() : null;
+      }catch(err){
+        // NotFoundException é o caso normal: nada no quadro. Só o resto é erro.
+        const nome = err && (err.name || err.constructor && err.constructor.name);
+        if(nome && nome.indexOf("NotFound") === -1 && nome.indexOf("Checksum") === -1
+           && nome.indexOf("Format") === -1){
+          tel.erro = nome + (err.message ? ": " + err.message : "");
+        }
+        return null;
+      }
+    }
+  }catch(e){
+    tel.erro = (e.name || "erro") + ": " + e.message;
+  }
+  return null;
+}
+
+function digitoEanValido(codigo){
+  if(!/^\d{8}$|^\d{12,13}$/.test(codigo)) return true;
+  const d = codigo.split("").map(Number), v = d.pop();
+  const soma = d.reverse().reduce((acc, n, i) => acc + n * (i % 2 === 0 ? 3 : 1), 0);
+  return (10 - (soma % 10)) % 10 === v;
+}
+
+/* =========================================================================
+   6. AUTO-TESTE
+   ========================================================================= */
+async function autoTeste(){
+  const alvo = "7891000100103";
+  const lona = $("#lonaTeste");
+  const saida = $("#resultadoTeste");
+  saida.className = "resultado-teste";
+  saida.textContent = "Rodando…";
+
+  desenharEan13(lona, alvo);
+  await prepararMotor();
+
+  if(motorTipo === "nenhum"){
+    saida.className = "resultado-teste falhou";
+    saida.textContent = "FALHOU · nenhum decodificador disponível. A biblioteca ZXing não carregou — verifique a conexão ou algum bloqueador.";
+    return;
+  }
+
+  const lido = await lerDoCanvas(lona);
+  if(lido === alvo){
+    saida.className = "resultado-teste ok";
+    saida.textContent = "OK · motor " + tel.motor + " leu " + lido +
+      ". O decodificador funciona; se a câmera não lê, o problema é captura: foco, luz ou distância.";
+  }else if(lido){
+    saida.className = "resultado-teste falhou";
+    saida.textContent = "DIVERGIU · esperava " + alvo + " e leu " + lido + ".";
+  }else{
+    saida.className = "resultado-teste falhou";
+    saida.textContent = "FALHOU · motor " + tel.motor + " não leu a imagem gerada." +
+      (tel.erro ? " Erro: " + tel.erro : " Sem exceção — simplesmente não reconheceu.");
+  }
+}
+
+/* =========================================================================
+   7. Guia sonoro
    ========================================================================= */
 let audio = null;
-const lona = document.createElement("canvas");
-lona.width = 192; lona.height = 48;
-const pincel = lona.getContext("2d", { willReadFrequently: true });
+const lonaSonar = document.createElement("canvas");
+lonaSonar.width = 192; lonaSonar.height = 48;
+const ctxSonar = lonaSonar.getContext("2d", { willReadFrequently: true });
 
 function bip(nivel){
   if(!sonarLigado || !audio) return;
   const osc = audio.createOscillator(), vol = audio.createGain();
   osc.type = "sine";
-  osc.frequency.value = 440 + nivel * 500;      // agudo = perto
+  osc.frequency.value = 440 + nivel * 500;
   const t = audio.currentTime;
   vol.gain.setValueAtTime(0.0001, t);
   vol.gain.exponentialRampToValueAtTime(0.12, t + 0.008);
@@ -309,63 +471,36 @@ function bip(nivel){
   osc.start(t); osc.stop(t + 0.09);
 }
 
-/* Conta transições claro/escuro no centro da imagem.
-   Um EAN-13 legível produz dezenas; parede lisa produz quase nenhuma. */
 function medirBarras(){
   const vw = elVideo.videoWidth, vh = elVideo.videoHeight;
   if(!vw || !vh) return 0;
-  const rw = vw * 0.84, rh = vh * 0.25;
-  pincel.drawImage(elVideo, (vw - rw) / 2, (vh - rh) / 2, rw, rh, 0, 0, lona.width, lona.height);
-  const px = pincel.getImageData(0, 0, lona.width, lona.height).data;
-
+  const rw = vw * 0.9, rh = vh * 0.4;
+  ctxSonar.drawImage(elVideo, (vw - rw) / 2, (vh - rh) / 2, rw, rh, 0, 0, lonaSonar.width, lonaSonar.height);
+  const px = ctxSonar.getImageData(0, 0, lonaSonar.width, lonaSonar.height).data;
   let melhor = 0;
-  for(let y = 0; y < lona.height; y += 4){
+  for(let y = 0; y < lonaSonar.height; y += 4){
+    const cinza = new Array(lonaSonar.width);
     let soma = 0;
-    const cinza = new Array(lona.width);
-    for(let x = 0; x < lona.width; x++){
-      const i = (y * lona.width + x) * 4;
+    for(let x = 0; x < lonaSonar.width; x++){
+      const i = (y * lonaSonar.width + x) * 4;
       const g = px[i] * 0.299 + px[i+1] * 0.587 + px[i+2] * 0.114;
       cinza[x] = g; soma += g;
     }
-    const media = soma / lona.width;
+    const media = soma / lonaSonar.width;
     let transicoes = 0, anterior = null;
-    for(let x = 0; x < lona.width; x++){
-      const escuro = cinza[x] < media - 10;     // margem contra ruído
+    for(let x = 0; x < lonaSonar.width; x++){
+      const escuro = cinza[x] < media - 10;
       if(anterior !== null && escuro !== anterior) transicoes++;
       anterior = escuro;
     }
     if(transicoes > melhor) melhor = transicoes;
   }
-  return Math.min(1, melhor / 34);              // 34 transições ≈ código cheio
-}
-
-let proximoBip = 0;
-function pulsoSonar(){
-  const nivel = medirBarras();
-  diag.nivel = nivel;
-  elSonarNivel.style.width = Math.round(nivel * 100) + "%";
-  elSonarTexto.textContent =
-    nivel > 0.75 ? "Quase lá, segure firme" :
-    nivel > 0.40 ? "Está perto" :
-    nivel > 0.15 ? "Alguma coisa no quadro" : "Procurando…";
-
-  const agora = performance.now();
-  if(agora >= proximoBip){
-    bip(nivel);
-    proximoBip = agora + (900 - nivel * 760);   // 900 ms → 140 ms
-  }
+  return Math.min(1, melhor / 34);
 }
 
 /* =========================================================================
-   5. Busca do produto
+   8. Produto
    ========================================================================= */
-function digitoEanValido(codigo){
-  if(!/^\d{8}$|^\d{12,13}$/.test(codigo)) return true;   // não valida o que não conhece
-  const d = codigo.split("").map(Number), v = d.pop();
-  const soma = d.reverse().reduce((acc, n, i) => acc + n * (i % 2 === 0 ? 3 : 1), 0);
-  return (10 - (soma % 10)) % 10 === v;
-}
-
 async function buscarProduto(codigo){
   if(CATALOGO_LOCAL[codigo]){
     return Object.assign({ codigo: codigo, fonte: "Base curada pela equipe" }, CATALOGO_LOCAL[codigo]);
@@ -377,7 +512,6 @@ async function buscarProduto(codigo){
   const dados = await resposta.json();
   const p = dados && dados.product;
   if(!p || (!p.product_name && !p.product_name_pt)) return null;
-
   const tags = [].concat(p.allergens_tags || [], p.traces_tags || []);
   const alergenos = Array.from(new Set(tags.map((t) => ALERGENOS_PT[t]).filter(Boolean)));
   return {
@@ -389,9 +523,6 @@ async function buscarProduto(codigo){
   };
 }
 
-/* =========================================================================
-   6. Tela
-   ========================================================================= */
 function escapar(s){
   const mapa = {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"};
   return String(s == null ? "" : s).replace(/[&<>"]/g, (c) => mapa[c]);
@@ -411,7 +542,6 @@ function mostrarProduto(p){
     html += '<p class="linha-dado"><span class="rotulo">Quantidade</span>' + escapar(p.quantidade) + "</p>";
     partes.push(p.quantidade);
   }
-
   if(p.tipo === "medicamento"){
     html += '<p class="linha-dado"><span class="rotulo">Para que serve</span>' + escapar(p.indicacao) + "</p>";
     html += '<p class="linha-dado"><span class="rotulo">Como tomar</span>' + escapar(p.posologia) + "</p>";
@@ -435,7 +565,6 @@ function mostrarProduto(p){
       partes.push("Ingredientes: " + p.ingredientes);
     }
   }
-
   html += '<span class="selo">Fonte: ' + escapar(p.fonte) + " &middot; código " + escapar(p.codigo) + "</span></div>";
   elResultado.innerHTML = html;
   falar(partes.join(". "));
@@ -464,49 +593,41 @@ async function consultar(codigo){
 }
 
 /* =========================================================================
-   7. CÂMERA
-   Ponto que quebrou antes: em vários navegadores de desktop o BarcodeDetector
-   existe mas não suporta EAN-13. Verificar só "BarcodeDetector in window"
-   levava o app a um caminho que nunca ia ler nada, em silêncio.
-   Agora perguntamos quais formatos ele realmente suporta e, na dúvida,
-   caímos no ZXing.
+   9. Câmera
    ========================================================================= */
-async function escolherMotor(){
-  if("BarcodeDetector" in window){
-    try{
-      const formatos = await window.BarcodeDetector.getSupportedFormats();
-      if(formatos.indexOf("ean_13") !== -1) return { tipo:"nativo", formatos: formatos };
-    }catch(e){ diag.erro = "BarcodeDetector indisponível: " + e.message; }
-  }
-  if(window.ZXing) return { tipo:"zxing" };
-  return { tipo:"nenhum" };
-}
+const lonaLeitura = document.createElement("canvas");
+const ctxLeitura = lonaLeitura.getContext("2d", { willReadFrequently: true });
 
-function atualizarDiag(){
-  elDiag.textContent =
-    "motor      : " + diag.motor + "\n" +
-    "resolução  : " + diag.resolucao + "\n" +
-    "quadros    : " + diag.quadros + "\n" +
-    "sinal sonar: " + Math.round(diag.nivel * 100) + "%\n" +
-    "erro       : " + (diag.erro || "nenhum");
+function atualizarTelemetria(){
+  const segundos = tel.inicio ? (performance.now() - tel.inicio) / 1000 : 0;
+  const taxa = segundos > 0 ? (tel.tentativas / segundos).toFixed(1) : "0";
+  elTelemetria.innerHTML =
+    "motor    " + escapar(tel.motor) + "\n" +
+    "captura  " + escapar(tel.resolucao) + "\n" +
+    "análises " + tel.tentativas + "  (" + taxa + "/s em " + segundos.toFixed(0) + "s)\n" +
+    "sinal    " + Math.round(tel.nivel * 100) + "%\n" +
+    "estado   " + (tel.erro
+      ? '<span class="falha">' + escapar(tel.erro) + "</span>"
+      : (tel.tentativas > 0 ? "analisando, nenhum código reconhecido ainda" : "iniciando"));
 }
 
 async function ligarCamera(){
-  // AudioContext precisa nascer de um gesto do usuário — este clique.
   try{
     if(!audio) audio = new (window.AudioContext || window.webkitAudioContext)();
     if(audio.state === "suspended") await audio.resume();
-  }catch(e){ diag.erro = "áudio: " + e.message; }
+  }catch(e){ tel.erro = "áudio: " + e.message; }
 
+  tel = { motor:"—", resolucao:"—", tentativas:0, taxa:0, nivel:0, erro:"", inicio:performance.now() };
   $("#visor").classList.remove("oculto");
   $("#sonar").classList.remove("oculto");
+  $("#telemetria").classList.remove("oculto");
   $("#barraCamera").classList.remove("oculto");
   $("#btnCamera").classList.add("oculto");
   mostrarEstado("Câmera ligada. Segure o celular parado e gire o produto na frente dele.", true);
 
   const aoLer = (codigo) => {
     const limpo = String(codigo).replace(/\D/g, "");
-    if(!digitoEanValido(limpo)) return;        // dígito verificador errado: ignora e continua
+    if(!digitoEanValido(limpo)) return;
     if(navigator.vibrate) navigator.vibrate([60, 40, 120]);
     bip(1);
     desligarCamera();
@@ -514,91 +635,79 @@ async function ligarCamera(){
   };
 
   try{
+    await prepararMotor();
+    if(motorTipo === "nenhum"){
+      atualizarTelemetria();
+      mostrarEstado("Nenhum decodificador disponível neste navegador.", true);
+      return;
+    }
+
     const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: { ideal: "environment" },
-        width:  { ideal: 1920 },
-        height: { ideal: 1080 }
-      }
+      video: { facingMode:{ ideal:"environment" }, width:{ ideal:1920 }, height:{ ideal:1080 } }
     });
     const track = stream.getVideoTracks()[0];
 
-    // Foco contínuo quando o aparelho permite: sem isso o código sai borrado.
     try{
       const caps = track.getCapabilities ? track.getCapabilities() : {};
       const avancado = [];
       if(caps.focusMode && caps.focusMode.indexOf("continuous") !== -1) avancado.push({ focusMode:"continuous" });
       if(avancado.length) await track.applyConstraints({ advanced: avancado });
       if(caps.torch) $("#btnLanterna").classList.remove("oculto");
-    }catch(e){ diag.erro = "constraints: " + e.message; }
+    }catch(e){ tel.erro = "constraints: " + e.message; }
 
     elVideo.srcObject = stream;
     await elVideo.play();
-
     const s = track.getSettings ? track.getSettings() : {};
-    diag.resolucao = (s.width || elVideo.videoWidth) + "×" + (s.height || elVideo.videoHeight);
-
-    const motor = await escolherMotor();
-    diag.motor = motor.tipo === "nativo" ? "BarcodeDetector (nativo)"
-               : motor.tipo === "zxing"  ? "ZXing (biblioteca)"
-               : "nenhum disponível";
+    tel.resolucao = (s.width || elVideo.videoWidth) + "×" + (s.height || elVideo.videoHeight);
 
     let ativo = true;
-    let pararMotor = function(){};
-    camera = {
-      stream: stream, track: track,
-      parar: function(){
-        ativo = false;
-        try{ pararMotor(); }catch(e){}
-        stream.getTracks().forEach((t) => t.stop());
-        elVideo.srcObject = null;
+    camera = { stream: stream, track: track, parar: function(){
+      ativo = false;
+      stream.getTracks().forEach((t) => t.stop());
+      elVideo.srcObject = null;
+    }};
+
+    // Um único laço: recorta a faixa central, tenta decodificar, mede o sonar.
+    let proximoBip = 0;
+    const laco = async function(){
+      if(!ativo) return;
+
+      const vw = elVideo.videoWidth, vh = elVideo.videoHeight;
+      if(vw && vh){
+        const rw = Math.round(vw * 0.9), rh = Math.round(vh * 0.4);
+        if(lonaLeitura.width !== rw){ lonaLeitura.width = rw; lonaLeitura.height = rh; }
+        ctxLeitura.drawImage(elVideo, (vw - rw) / 2, (vh - rh) / 2, rw, rh, 0, 0, rw, rh);
+
+        tel.tentativas++;
+        const codigo = await lerDoCanvas(lonaLeitura);
+        if(codigo){ aoLer(codigo); return; }
+
+        tel.nivel = medirBarras();
+        elSonarNivel.style.width = Math.round(tel.nivel * 100) + "%";
+        elSonarTexto.textContent =
+          tel.nivel > 0.75 ? "Quase lá, segure firme" :
+          tel.nivel > 0.40 ? "Está perto" :
+          tel.nivel > 0.15 ? "Alguma coisa no quadro" : "Procurando…";
+
+        const agora = performance.now();
+        if(agora >= proximoBip){ bip(tel.nivel); proximoBip = agora + (900 - tel.nivel * 760); }
       }
+
+      atualizarTelemetria();
+      setTimeout(laco, 90);
     };
+    laco();
 
-    // Sonar roda independente do motor de leitura.
-    const lacoSonar = setInterval(function(){
-      if(!ativo){ clearInterval(lacoSonar); return; }
-      pulsoSonar(); atualizarDiag();
-    }, 120);
+    // Depois de 15 s sem sucesso, avisa em voz o que costuma resolver.
+    setTimeout(function(){
+      if(ativo && tel.tentativas > 0){
+        falar("Ainda não achei o código. Tente afastar um palmo, buscar mais luz, ou ligar a lanterna.");
+      }
+    }, 15000);
 
-    if(motor.tipo === "nativo"){
-      const detector = new window.BarcodeDetector({
-        formats: ["ean_13","ean_8","upc_a","upc_e","code_128"]
-      });
-      const laco = async function(){
-        if(!ativo) return;
-        try{
-          const achados = await detector.detect(elVideo);
-          diag.quadros++;
-          if(achados.length){ aoLer(achados[0].rawValue); return; }
-        }catch(e){ diag.erro = "detect: " + e.message; }
-        setTimeout(laco, 120);
-      };
-      laco();
-    } else if(motor.tipo === "zxing"){
-      const dicas = new Map();
-      dicas.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [
-        ZXing.BarcodeFormat.EAN_13, ZXing.BarcodeFormat.EAN_8,
-        ZXing.BarcodeFormat.UPC_A,  ZXing.BarcodeFormat.UPC_E,
-        ZXing.BarcodeFormat.CODE_128
-      ]);
-      dicas.set(ZXing.DecodeHintType.TRY_HARDER, true);
-      const leitor = new ZXing.BrowserMultiFormatReader(dicas, { delayBetweenScanAttempts: 120 });
-      pararMotor = function(){ leitor.reset(); };
-      // Reaproveita o stream que já configuramos em alta resolução.
-      leitor.decodeFromStream(stream, elVideo, function(r, err){
-        diag.quadros++;
-        if(r) aoLer(r.getText());
-        else if(err && err.name && err.name !== "NotFoundException") diag.erro = err.name;
-      });
-    } else {
-      desligarCamera();
-      mostrarEstado("Este navegador não consegue ler código de barras.", true);
-    }
-    atualizarDiag();
   }catch(e){
-    diag.erro = e.name + ": " + e.message;
-    atualizarDiag();
+    tel.erro = (e.name || "erro") + ": " + e.message;
+    atualizarTelemetria();
     desligarCamera();
     mostrarEstado("Não consegui abrir a câmera. Autorize o acesso nas permissões do navegador.", true);
   }
@@ -615,15 +724,52 @@ function desligarCamera(){
   $("#btnCamera").classList.remove("oculto");
   $("#btnCamera").focus();
   elSonarNivel.style.width = "0%";
+  // A telemetria fica na tela: é o registro do que aconteceu.
 }
 
 /* =========================================================================
-   8. Eventos
+   10. Ler de uma foto
+   ========================================================================= */
+$("#arquivo").addEventListener("change", async function(e){
+  const arquivo = e.target.files && e.target.files[0];
+  if(!arquivo) return;
+  const saida = $("#resultadoTeste");
+  saida.className = "resultado-teste";
+  saida.textContent = "Lendo a foto…";
+
+  await prepararMotor();
+  const img = new Image();
+  img.onload = async function(){
+    const lona = document.createElement("canvas");
+    // Limita a 1600 px no maior lado: acima disso só custa tempo.
+    const escalaImg = Math.min(1, 1600 / Math.max(img.width, img.height));
+    lona.width = Math.round(img.width * escalaImg);
+    lona.height = Math.round(img.height * escalaImg);
+    lona.getContext("2d").drawImage(img, 0, 0, lona.width, lona.height);
+
+    const codigo = await lerDoCanvas(lona);
+    if(codigo){
+      saida.className = "resultado-teste ok";
+      saida.textContent = "OK · leu " + codigo + " da foto (" + lona.width + "×" + lona.height + ").";
+      consultar(codigo);
+    }else{
+      saida.className = "resultado-teste falhou";
+      saida.textContent = "Não reconheceu nenhum código nesta foto (" + lona.width + "×" + lona.height + ")." +
+        (tel.erro ? " Erro: " + tel.erro : " Tente uma foto mais nítida, com o código preenchendo boa parte do quadro.");
+    }
+    URL.revokeObjectURL(img.src);
+  };
+  img.src = URL.createObjectURL(arquivo);
+});
+
+/* =========================================================================
+   11. Eventos
    ========================================================================= */
 $("#btnCamera").addEventListener("click", ligarCamera);
 $("#btnParar").addEventListener("click", function(){
   desligarCamera(); mostrarEstado("Câmera desligada.", true);
 });
+$("#btnAutoTeste").addEventListener("click", autoTeste);
 
 $("#btnLanterna").addEventListener("click", async function(e){
   if(!camera) return;
@@ -631,7 +777,7 @@ $("#btnLanterna").addEventListener("click", async function(e){
   try{
     await camera.track.applyConstraints({ advanced: [{ torch: ligar }] });
     e.currentTarget.setAttribute("aria-pressed", String(ligar));
-  }catch(err){ diag.erro = "lanterna: " + err.message; atualizarDiag(); }
+  }catch(err){ tel.erro = "lanterna: " + err.message; atualizarTelemetria(); }
 });
 
 $("#formManual").addEventListener("submit", function(e){
@@ -674,10 +820,10 @@ $("#btnRepetir").addEventListener("click", function(){
   const guardado = vozLigada; vozLigada = true; falar(ultimoTexto); vozLigada = guardado;
 });
 
-atualizarDiag();
+// Auto-teste roda sozinho ao abrir: já se sabe se o decodificador funciona.
+autoTeste();
 </script>
 <script>
-/* Registra o service worker: é o que permite instalar na tela inicial e abrir offline. */
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", function () {
     navigator.serviceWorker.register("sw.js").catch(function () {});

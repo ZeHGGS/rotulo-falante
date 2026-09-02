@@ -1,7 +1,7 @@
 /* Service worker do Rótulo Falante.
    Casca do app em cache: abre sem internet.
    API de alimentos: rede primeiro, cache como reserva. */
-const CACHE = "rotulo-falante-v2";
+const CACHE = "rotulo-falante-v3";
 const CASCA = [
   "./", "./index.html", "./manifest.webmanifest",
   "./icon-192.png", "./icon-512.png",
